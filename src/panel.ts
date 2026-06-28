@@ -1,6 +1,6 @@
 import panel from './panel.html'
 import { ChatMessage as AgentChatMessage } from './chats/types'
-import { renderMarkdown, renderEditedFileLines } from './panel/markdown'
+import { renderMarkdown } from './panel/markdown'
 import type { AIPanelAPI, ChatMessage, ContextFile } from './panel/types'
 import {
 	decodeBase64Safe,
@@ -26,7 +26,6 @@ import {
 } from './chats/settings'
 import { processSingleToolCallTag } from './panel/commandParser'
 import { getWorkspaceFolders, getActiveFiles } from './helpers/workspace'
-import { OldEditedFileLines } from './chats/tools/functions/types'
 
 declare global {
 	interface Window {
@@ -431,10 +430,11 @@ const renderPanel = (container: HTMLElement): (() => void) => {
 
 		const messagesForAI = filteredChatMessages.map(
 			(m: ChatMessage, index: number): AgentChatMessage => {
-				const isLastMessage = index === filteredChatMessages.length - 1
 				let ctx = ''
 
-				/*if (isLastMessage) {
+				/*const isLastMessage = index === filteredChatMessages.length - 1
+
+				if (isLastMessage) {
 					ctx += `──────── SUB-SYSTEM INSTRUCTION ────────\n
 Never use <system_injected_preview> because it's inserted by the system alone for you (and the user) to be able to have references to your old tool calls, if the <system_injected_preview> json info is for old edited files, then you can use the 'editedFileHistoryId' field value and add it as parameter to your 'view_edited_files_history' tool call to view the full code you added and removed for that file.
 After editing any files you should re-read them to make sure there's no error in your edit.\n
