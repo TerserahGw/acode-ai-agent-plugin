@@ -1,9 +1,9 @@
 {
 	"$schema": "https://acode.app/schema/plugin/v0.1.0.json",
-	"id": "hallofcodes.rutex.coding_agent",
-	"name": "RutexAI Coding Agent",
+	"id": "chioriya.conduit.coding_agent",
+	"name": "Conduit Coding Agent",
 	"main": "dist/main.js",
-	"version": "0.0.9",
+	"version": "0.1.0",
 	"readme": "./readme.md",
 	"repository": "https://github.com/hallofcodes/acode-ai-agent-plugin",
 	"icon": "icon.png",
@@ -11,9 +11,9 @@
 		"ai",
 		"ai agent",
 		"coding agent",
-		"agentic code",
-		"copilot",
-		"rutex"
+		"conduit",
+		"siti",
+		"openai compatible"
 	],
 	"files": [],
 	"permissions": [],
@@ -21,8 +21,8 @@
 	"minVersionCode": 958,
 	"price": 0,
 	"author": {
-		"name": "dconco",
-		"github": "dconco"
+		"name": "Watashi Bosan",
+		"github": "apk.mcpemaster778"
 	},
 	"contributors": [
 		{
