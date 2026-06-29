@@ -9,6 +9,7 @@ import { ProviderModelMeta } from '../chats/models/types'
 
 const DROPDOWN_PROVIDERS = [
 	'openai',
+	'conduit',
 	'deepseek',
 	'claude',
 	'gemini',
@@ -73,6 +74,14 @@ export const settingsContainer = (container: HTMLElement) => {
 		container,
 		'#setting-openai-host'
 	)
+	const modelConduitTrigger = getElement<HTMLButtonElement>(
+	container,
+	'#setting-model-conduit-btn'
+)
+const customModelConduitInput = getElement<HTMLInputElement>(
+	container,
+	'#setting-custom-model-conduit'
+)
 	const modelDeepSeekTrigger = getElement<HTMLButtonElement>(
 		container,
 		'#setting-model-deepseek-btn'
@@ -101,6 +110,10 @@ export const settingsContainer = (container: HTMLElement) => {
 		container,
 		'#setting-model-info-openai'
 	)
+	const modelInfoConduit = getElement<HTMLElement>(
+	container,
+	'#setting-model-info-conduit'
+)
 	const modelInfoDeepSeek = getElement<HTMLElement>(
 		container,
 		'#setting-model-info-deepseek'
@@ -136,6 +149,7 @@ export const settingsContainer = (container: HTMLElement) => {
 
 	const modelTriggers: Record<DropdownProvider, HTMLButtonElement> = {
 		openai: modelOpenAITrigger,
+		conduit: modelConduitTrigger,
 		deepseek: modelDeepSeekTrigger,
 		claude: modelClaudeTrigger,
 		gemini: modelGeminiTrigger,
@@ -145,6 +159,7 @@ export const settingsContainer = (container: HTMLElement) => {
 
 	const modelInfoEls: Record<DropdownProvider, HTMLElement> = {
 		openai: modelInfoOpenAI,
+		conduit: modelInfoConduit,
 		deepseek: modelInfoDeepSeek,
 		claude: modelInfoClaude,
 		gemini: modelInfoGemini,
@@ -233,6 +248,11 @@ export const settingsContainer = (container: HTMLElement) => {
 		)
 		openAIHostInput.value = aiSettings.openaiHost
 		customModelOpenaiInput.value = aiSettings.models.openai
+		modelConduitTrigger.textContent = getModelLabel(
+	'conduit',
+	aiSettings.models.conduit
+)
+customModelConduitInput.value = aiSettings.models.conduit
 		modelDeepSeekTrigger.textContent = getModelLabel(
 			'deepseek',
 			aiSettings.models.deepseek
@@ -255,6 +275,7 @@ export const settingsContainer = (container: HTMLElement) => {
 			aiSettings.models.openrouter
 		)
 		renderModelInfo('openai')
+		renderModelInfo('conduit')
 		renderModelInfo('deepseek')
 		renderModelInfo('claude')
 		renderModelInfo('gemini')
@@ -309,7 +330,10 @@ export const settingsContainer = (container: HTMLElement) => {
 				aiSettings.models[modelMenuProvider] = model.id
 
 				if (modelMenuProvider == 'openai')
-					customModelOpenaiInput.value = model.id
+	customModelOpenaiInput.value = model.id
+
+if (modelMenuProvider == 'conduit')
+	customModelConduitInput.value = model.id
 
 				persistSettings()
 				closeModelMenu()
@@ -421,6 +445,12 @@ export const settingsContainer = (container: HTMLElement) => {
 			customModelOpenaiInput.value.trim() || aiSettings.models.openai
 		persistSettings()
 	})
+
+	customModelConduitInput.addEventListener('change', () => {
+	aiSettings.models.conduit =
+		customModelConduitInput.value.trim() || aiSettings.models.conduit
+	persistSettings()
+})
 
 	openAIHostInput.addEventListener('change', () => {
 		aiSettings.openaiHost = openAIHostInput.value.trim()
