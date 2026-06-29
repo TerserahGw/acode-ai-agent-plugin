@@ -14,15 +14,15 @@ export default async function* (
 		dangerouslyAllowBrowser: true
 	}
 
-	if (String(aiSettings.openaiHost).length > 0) {
-		config.baseURL = aiSettings.openaiHost
+	if (String(aiSettings.openaiHost).trim().length > 0) {
+		config.baseURL = normalizeBaseURL(aiSettings.openaiHost)
 	}
 
 	const client = new OpenAI(config)
 
 	const chatMessages: any[] = []
 
-	if (aiSettings.systemInstruction) {
+	if (aiSettings.systemInstruction?.trim()) {
 		chatMessages.push({
 			role: 'system',
 			content: aiSettings.systemInstruction
@@ -54,17 +54,39 @@ export default async function* (
 	while (true) {
 		if (signal?.aborted) break
 
-		const response: any = await client.chat.completions.create(
-			{
+		let response: any
+
+		try {
+			response = await createChatCompletion(client, {
 				model,
 				messages: chatMessages,
 				temperature: aiSettings.temperature,
 				max_tokens: aiSettings.maxTokens,
 				tools,
 				tool_choice: 'auto'
-			},
-			{ signal }
-		)
+			}, signal)
+		} catch (err: any) {
+			const msg = getErrorMessage(err)
+
+			if (shouldRetryWithoutTools(msg)) {
+				response = await createChatCompletion(client, {
+					model,
+					messages: chatMessages,
+					temperature: aiSettings.temperature,
+					max_tokens: aiSettings.maxTokens
+				}, signal)
+			} else if (shouldRetryWithoutTemperature(msg)) {
+				response = await createChatCompletion(client, {
+					model,
+					messages: chatMessages,
+					max_tokens: aiSettings.maxTokens,
+					tools,
+					tool_choice: 'auto'
+				}, signal)
+			} else {
+				throw err
+			}
+		}
 
 		resolvedModel = response?.model ?? resolvedModel
 
@@ -154,6 +176,18 @@ export default async function* (
 	}
 }
 
+async function createChatCompletion(
+	client: OpenAI,
+	body: any,
+	signal?: AbortSignal
+): Promise<any> {
+	return await client.chat.completions.create(body, { signal })
+}
+
+function normalizeBaseURL(url: string): string {
+	return url.trim().replace(/\/+$/, '')
+}
+
 function safeJsonParse(raw: string): Record<string, any> {
 	try {
 		return JSON.parse(raw)
@@ -180,4 +214,34 @@ function getMessageText(message: any): string {
 	}
 
 	return ''
+}
+
+function getErrorMessage(err: any): string {
+	if (!err) return ''
+	if (err instanceof Error) return err.message || ''
+	if (typeof err === 'string') return err
+	try {
+		return JSON.stringify(err)
+	} catch {
+		return String(err)
+	}
+}
+
+function shouldRetryWithoutTools(message: string): boolean {
+	const lower = message.toLowerCase()
+	return (
+		lower.includes('tool') ||
+		lower.includes('function') ||
+		lower.includes('tools') ||
+		lower.includes('tool_choice') ||
+		lower.includes('tool_calls')
+	)
+}
+
+function shouldRetryWithoutTemperature(message: string): boolean {
+	const lower = message.toLowerCase()
+	return (
+		lower.includes('temperature') ||
+		lower.includes('unsupported parameter')
+	)
 }
