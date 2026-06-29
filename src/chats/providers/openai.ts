@@ -4,12 +4,6 @@ import { ToolsFunction } from '../tools/functions/types'
 import { tools as ollamaTools } from '../tools/ollama_tools'
 import { Usage, StreamChunk, ChatMessage } from '../types'
 
-// ─────────────────────────────────────────────
-// OpenAI
-// Models: gpt-4o | gpt-4.1 | gpt-5.4 | o3 | o4-mini
-// For coding agent tasks: gpt-5.3-codex | gpt-5.2-codex
-// ─────────────────────────────────────────────
-
 export default async function* (
 	model: string,
 	messages: ChatMessage[],
@@ -20,22 +14,37 @@ export default async function* (
 		dangerouslyAllowBrowser: true
 	}
 
-	if (String(aiSettings.openaiHost).length > 0)
-		config['baseURL'] = aiSettings.openaiHost
+	if (String(aiSettings.openaiHost).length > 0) {
+		config.baseURL = aiSettings.openaiHost
+	}
 
 	const client = new OpenAI(config)
 
-	// Keep incoming history plain; tool state is built only inside this loop.
-	const input: any[] = messages
-		.filter(m => m.role !== 'tool')
-		.map(m => ({ role: m.role, content: m.content }))
+	const chatMessages: any[] = []
 
-	const openaiTools = ollamaTools.map(tool => ({
-		type: 'function' as const,
-		name: tool.function.name,
-		description: tool.function.description,
-		parameters: tool.function.parameters,
-		strict: false
+	if (aiSettings.systemInstruction) {
+		chatMessages.push({
+			role: 'system',
+			content: aiSettings.systemInstruction
+		})
+	}
+
+	for (const m of messages) {
+		if (m.role === 'tool') continue
+
+		chatMessages.push({
+			role: m.role,
+			content: m.content || ''
+		})
+	}
+
+	const tools: any[] = ollamaTools.map(tool => ({
+		type: 'function',
+		function: {
+			name: tool.function.name,
+			description: tool.function.description,
+			parameters: tool.function.parameters
+		}
 	}))
 
 	let fullText = ''
@@ -45,16 +54,14 @@ export default async function* (
 	while (true) {
 		if (signal?.aborted) break
 
-		const response: any = await client.responses.create(
+		const response: any = await client.chat.completions.create(
 			{
 				model,
-				instructions: aiSettings.systemInstruction,
+				messages: chatMessages,
 				temperature: aiSettings.temperature,
-				max_output_tokens: aiSettings.maxTokens,
-				parallel_tool_calls: true,
-				tool_choice: 'auto',
-				tools: openaiTools,
-				input
+				max_tokens: aiSettings.maxTokens,
+				tools,
+				tool_choice: 'auto'
 			},
 			{ signal }
 		)
@@ -63,37 +70,35 @@ export default async function* (
 
 		if (response?.usage) {
 			usage = {
-				inputTokens:
-					response.usage.input_tokens ?? response.usage.prompt_tokens ?? 0,
-				outputTokens:
-					response.usage.output_tokens ??
-					response.usage.completion_tokens ??
-					0,
+				inputTokens: response.usage.prompt_tokens ?? 0,
+				outputTokens: response.usage.completion_tokens ?? 0,
 				totalTokens: response.usage.total_tokens ?? 0
 			}
 		}
 
-		const turnText = getResponseText(response)
+		const choice = response?.choices?.[0]
+		const message = choice?.message
+		const text = getMessageText(message)
 
-		if (turnText) {
-			fullText += turnText
-			yield { type: 'text', model: resolvedModel, delta: turnText }
+		if (text) {
+			fullText += text
+			yield { type: 'text', model: resolvedModel, delta: text }
 		}
 
-		const toolCalls = Array.isArray(response?.output)
-			? response.output.filter(
-					(item: any) => item?.type === 'function_call' && item?.name
-				)
+		const toolCalls = Array.isArray(message?.tool_calls)
+			? message.tool_calls
 			: []
 
 		if (!toolCalls.length) break
 
-		// Preserve the model output items (including reasoning/function calls)
-		// before appending function_call_output items.
-		input.push(...response.output)
+		chatMessages.push({
+			role: 'assistant',
+			content: message?.content || '',
+			tool_calls: toolCalls
+		})
 
 		for (const call of toolCalls) {
-			const toolName = call?.name
+			const toolName = call?.function?.name
 			if (!toolName) continue
 
 			try {
@@ -101,9 +106,10 @@ export default async function* (
 					await require(`../tools/functions/${toolName}`)
 				).default
 
-				const rawArgs = call?.arguments ?? '{}'
+				const rawArgs = call?.function?.arguments ?? '{}'
 				const args = safeJsonParse(rawArgs)
 				const chunkedResult = toolFunction(args as any)
+
 				let resultContent = ''
 
 				for await (const toolChunk of chunkedResult) {
@@ -121,19 +127,19 @@ export default async function* (
 					}
 				}
 
-				input.push({
-					type: 'function_call_output',
-					call_id: call.call_id,
-					output: resultContent || '[NO RESULT]'
+				chatMessages.push({
+					role: 'tool',
+					tool_call_id: call.id,
+					content: resultContent || '[NO RESULT]'
 				})
 			} catch (e: any) {
 				const errorMessage =
 					e instanceof Error ? e.message : String(e || 'Unknown error')
 
-				input.push({
-					type: 'function_call_output',
-					call_id: call.call_id,
-					output: `[ERROR] ${errorMessage}`
+				chatMessages.push({
+					role: 'tool',
+					tool_call_id: call.id,
+					content: `[ERROR] ${errorMessage}`
 				})
 			}
 		}
@@ -156,21 +162,22 @@ function safeJsonParse(raw: string): Record<string, any> {
 	}
 }
 
-function getResponseText(response: any): string {
-	if (response?.output_text) return response.output_text
-	if (!Array.isArray(response?.output)) return ''
+function getMessageText(message: any): string {
+	const content = message?.content
 
-	let text = ''
+	if (!content) return ''
+	if (typeof content === 'string') return content
 
-	for (const item of response.output) {
-		if (item?.type !== 'message' || !Array.isArray(item?.content)) continue
-
-		for (const contentPart of item.content) {
-			if (contentPart?.type === 'output_text' && contentPart?.text) {
-				text += contentPart.text
-			}
-		}
+	if (Array.isArray(content)) {
+		return content
+			.map(part => {
+				if (typeof part === 'string') return part
+				if (part?.text) return part.text
+				if (part?.content) return part.content
+				return ''
+			})
+			.join('')
 	}
 
-	return text
+	return ''
 }
