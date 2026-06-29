@@ -13,6 +13,7 @@ export type Provider =
 	| 'claude'
 	| 'openai'
 	| 'gemini'
+	| 'conduit'
 	| 'deepseek'
 	| 'ollama'
 	| 'openrouter'
