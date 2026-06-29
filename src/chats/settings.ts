@@ -76,6 +76,7 @@ export const aiSettings: AISettings = {
 	models: {
 		claude: 'claude-sonnet-4-6', // claude-opus-4-6 | claude-haiku-4-5
 		openai: 'gpt-5.3-codex', // gpt-4.1 | gpt-5.4 | o3 | o4-mini
+		conduit: 'gpt-5',
 		gemini: 'gemini-3-flash-preview', // gemini-2.5-pro | gemini-3-flash-preview
 		deepseek: 'deepseek-chat', // deepseek-reasoner (thinking/CoT mode)
 		qwen: 'qwen3-coder-plus', // qwen3.5
@@ -87,6 +88,7 @@ export const aiSettings: AISettings = {
 	apiKeys: {
 		claude: '',
 		openai: '',
+		conduit: '',
 		gemini: '',
 		deepseek: '',
 		qwen: '',
@@ -98,6 +100,7 @@ export const aiSettings: AISettings = {
 	providers: {
 		claude: 'Claude',
 		openai: 'OpenAI',
+		conduit: 'Conduit',
 		gemini: 'Gemini',
 		deepseek: 'DeepSeek',
 		qwen: 'Qwen',
