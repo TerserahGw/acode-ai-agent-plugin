@@ -16,18 +16,17 @@ const addIcon = () => {
 	removeIcon()
 
 	sideBarApps.add(
-		'ai-agent-icon',
-		PLUGIN_ID,
-		'Rutex AI Agent',
-		(container: HTMLElement) => {
-			scrollBottom = renderPanel(container)
-		},
-		false,
-		() => {
-			// Optional: logic to run whenever the sidebar is toggled open
-			if (scrollBottom) scrollBottom()
-		}
-	)
+	'ai-agent-icon',
+	PLUGIN_ID,
+	'Conduit Coding Agent',
+	(container: HTMLElement) => {
+		scrollBottom = renderPanel(container)
+	},
+	false,
+	() => {
+		if (scrollBottom) scrollBottom()
+	}
+)
 }
 
 export { addIcon, removeIcon }
