@@ -1524,6 +1524,7 @@
 			<option value="claude">Claude</option>
 			<option value="deepseek">DeepSeek</option>
 			<option value="openai">OpenAI</option>
+            <option value="conduit">Conduit</option>
 			<option value="qwen">Qwen</option>
 			<option value="ollama">Ollama</option>
 			<option value="openrouter">OpenRouter</option>
@@ -1753,6 +1754,36 @@
 						type="text" />
 				</div>
 			</div>
+
+<div class="settings-sec">
+	<span class="settings-sec-title">Conduit</span>
+	<div class="settings-row">
+		<label class="settings-label" for="setting-model-conduit-btn"
+			>Model</label
+		>
+		<button
+			class="settings-model-trigger"
+			id="setting-model-conduit-btn"
+			type="button"></button>
+		<div
+			class="settings-model-info"
+			id="setting-model-info-conduit"></div>
+	</div>
+	<div class="settings-row">
+		<label class="settings-label" for="setting-custom-model-conduit"
+			>Custom Model</label
+		>
+		<input
+			class="settings-input"
+			id="setting-custom-model-conduit"
+			type="text"
+			placeholder="gpt-5 / claude-opus-4-8 / gemini-3-pro" />
+	</div>
+	<div class="settings-note">
+		Base URL fixed: https://conduit.ozdoev.net/api/v1
+	</div>
+</div>
+
 
 			<div class="settings-sec">
 				<span class="settings-sec-title">DeepSeek</span>
